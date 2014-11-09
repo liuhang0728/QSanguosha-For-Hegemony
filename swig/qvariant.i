@@ -1,13 +1,35 @@
+/********************************************************************
+    Copyright (c) 2013-2014 - QSanguosha-Rara
+
+  This file is part of QSanguosha-Hegemony.
+
+  This game is free software; you can redistribute it and/or
+  modify it under the terms of the GNU General Public License as
+  published by the Free Software Foundation; either version 3.0
+  of the License, or (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  General Public License for more details.
+
+  See the LICENSE file for more details.
+
+  QSanguosha-Rara
+*********************************************************************/
+
 class QVariant {
 public:
     QVariant();
     QVariant(int);
     QVariant(const char *);
     QVariant(bool);
+    QVariant(QList<QVariant>);
     int toInt() const;
     QString toString() const;
     QStringList toStringList() const;
     bool toBool() const;
+    QList<QVariant> toList() const;
 };
 
 %extend QVariant {
@@ -52,7 +74,7 @@ public:
     }
 
     const Card *toCard() const{
-        return $self->value<CardStar>();
+        return $self->value<const Card *>();
     }
 
     void setValue(ServerPlayer *player) {
@@ -60,7 +82,7 @@ public:
     }
 
     ServerPlayer *toPlayer() const{
-        return $self->value<PlayerStar>();
+        return $self->value<ServerPlayer *>();
     }
 
     void setValue(DyingStruct *dying) {
@@ -92,7 +114,7 @@ public:
     }
 
     JudgeStruct *toJudge() const{
-        return $self->value<JudgeStar>();
+        return $self->value<JudgeStruct *>();
     }
 
     void setValue(PindianStruct *pindian) {
@@ -100,7 +122,7 @@ public:
     }
 
     PindianStruct *toPindian() const{
-        return $self->value<PindianStar>();
+        return $self->value<PindianStruct *>();
     }
 
     void setValue(PhaseChangeStruct *phase) {
@@ -127,6 +149,14 @@ public:
         return $self->value<CardResponseStruct>();
     }
 
+    void setValue(PlayerNumStruct *cmcs) {
+        $self->setValue(QVariant::fromValue(*cmcs));
+    }
+
+    PlayerNumStruct toPlayerNum() const{
+        return $self->value<PlayerNumStruct>();
+    }
+/*
     void setValue(QList<int> intlist) {
         QVariantList varlist;
         for (int i = 0; i < intlist.length(); i++)
@@ -143,4 +173,5 @@ public:
         }
         return result;
     }
+*/
 };

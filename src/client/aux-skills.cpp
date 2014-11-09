@@ -1,13 +1,31 @@
+/********************************************************************
+    Copyright (c) 2013-2014 - QSanguosha-Rara
+
+    This file is part of QSanguosha-Hegemony.
+
+    This game is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License as
+    published by the Free Software Foundation; either version 3.0
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    See the LICENSE file for more details.
+
+    QSanguosha-Rara
+    *********************************************************************/
+
 #include "aux-skills.h"
 #include "client.h"
-#include "standard.h"
-#include "standard.h"
+#include "standard-shu-generals.h"
 #include "clientplayer.h"
 #include "engine.h"
 
 DiscardSkill::DiscardSkill()
-    : ViewAsSkill("discard"), card(new DummyCard),
-      num(0), include_equip(false), is_discard(true)
+    : ViewAsSkill("discard"), card(new DummyCard), num(0), include_equip(false), is_discard(true)
 {
     card->setParent(this);
 }
@@ -46,7 +64,8 @@ const Card *DiscardSkill::viewAs(const QList<const Card *> &cards) const{
         card->clearSubcards();
         card->addSubcards(cards);
         return card;
-    } else
+    }
+    else
         return NULL;
 }
 
@@ -69,8 +88,15 @@ void ResponseSkill::setRequest(const Card::HandlingMethod request) {
 bool ResponseSkill::matchPattern(const Player *player, const Card *card) const{
     if (request != Card::MethodNone && player->isCardLimited(card, request))
         return false;
-
-    return pattern && pattern->match(player, card);
+    if (pattern) {
+        QString pat = pattern->getPatternString();
+        if ((request == Card::MethodUse || request == Card::MethodResponse) && pat.contains("hand")) {
+            pat.replace("hand", "hand,wooden_ox");
+        }
+        ExpPattern exp_pattern(pat);
+        return exp_pattern.match(player, card);
+    }
+    return false;
 }
 
 bool ResponseSkill::viewFilter(const Card *card) const{
@@ -94,7 +120,7 @@ bool ShowOrPindianSkill::matchPattern(const Player *player, const Card *card) co
 
 // -------------------------------------------
 
-class YijiCard: public RendeCard {
+class YijiCard : public RendeCard {
 public:
     YijiCard() {
         target_fixed = false;
@@ -147,7 +173,7 @@ const Card *YijiViewAsSkill::viewAs(const QList<const Card *> &cards) const{
 
 // ------------------------------------------------
 
-class ChoosePlayerCard: public DummyCard {
+class ChoosePlayerCard : public DummyCard {
 public:
     ChoosePlayerCard() {
         target_fixed = false;
@@ -180,3 +206,24 @@ const Card *ChoosePlayerSkill::viewAs() const{
     return card;
 }
 
+TransferSkill::TransferSkill()
+    : OneCardViewAsSkill("transfer") {
+}
+
+bool TransferSkill::viewFilter(const Card *to_select) const{
+    return to_select->getId() == _toSelect;
+}
+
+const Card *TransferSkill::viewAs(const Card *originalCard) const{
+    TransferCard *transfer = new TransferCard;
+    transfer->addSubcard(originalCard);
+    return transfer;
+}
+
+bool TransferSkill::isEnabledAtPlay(const Player *) const{
+    return true;
+}
+
+void TransferSkill::setToSelect(int toSelect){
+    _toSelect = toSelect;
+}

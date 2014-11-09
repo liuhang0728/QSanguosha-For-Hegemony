@@ -1,8 +1,28 @@
+/********************************************************************
+    Copyright (c) 2013-2014 - QSanguosha-Rara
+
+    This file is part of QSanguosha-Hegemony.
+
+    This game is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License as
+    published by the Free Software Foundation; either version 3.0
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    See the LICENSE file for more details.
+
+    QSanguosha-Rara
+    *********************************************************************/
+
 #ifndef _CLIENT_STRUCT_H
 #define _CLIENT_STRUCT_H
 
 #include "player.h"
-#include "QSanSelectableItem.h"
+#include "qsanselectableitem.h"
 #include "protocol.h"
 #include <QMap>
 #include <QWidget>
@@ -22,15 +42,9 @@ struct ServerInfoStruct {
     bool RandomSeat;
     bool EnableCheat;
     bool FreeChoose;
-    bool Enable2ndGeneral;
-    bool EnableScene;
-    bool EnableSame;
-    bool EnableBasara;
-    bool EnableHegemony;
-    bool EnableAI;
+    bool ForbidAddingRobot;
     bool DisableChat;
-    int MaxHpScheme;
-    int Scheme0Subtraction;
+    bool FirstShowingReward;
 
     bool DuringGame;
 };
@@ -40,7 +54,7 @@ extern ServerInfoStruct ServerInfo;
 class QLabel;
 class QListWidget;
 
-class ServerInfoWidget: public QWidget {
+class ServerInfoWidget : public QWidget {
     Q_OBJECT
 
 public:
@@ -55,16 +69,11 @@ private:
     QLabel *port_label;
     QLabel *game_mode_label;
     QLabel *player_count_label;
-    QLabel *two_general_label;
-    QLabel *scene_label;
-    QLabel *same_label;
-    QLabel *basara_label;
-    QLabel *hegemony_label;
-    QLabel *max_hp_label;
     QLabel *random_seat_label;
     QLabel *enable_cheat_label;
     QLabel *free_choose_label;
-    QLabel *enable_ai_label;
+    QLabel *forbid_adding_robot_label;
+    QLabel *fisrt_showing_reward_label;
     QLabel *time_limit_label;
     QLabel *lack_label;
     QListWidget *list_widget;

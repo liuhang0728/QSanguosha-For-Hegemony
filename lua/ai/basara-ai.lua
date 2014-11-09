@@ -1,291 +1,301 @@
-function askForShowGeneral(self, choices)
-	
-	local event = self.player:getTag("event"):toInt()
-	local data = self.player:getTag("event_data")
-	local generals = self.player:getTag("roles"):toString():split("+")
-	local players = {}
-	for _, general in ipairs(generals) do
-		local player = sgs.ServerPlayer(self.room)
-		player:setGeneral(sgs.Sanguosha:getGeneral(general))
-		table.insert(players, player)
-	end
-	
-	if event == sgs.DamageInflicted then
-		local damage = data:toDamage()
-		for _, player in ipairs(players) do
-			if damage and self:hasSkills(sgs.masochism_skill .. "|zhichi|zhiyu|fenyong", player) and not self:isFriend(damage.from, damage.to) then return "yes" end
-			if damage and damage.damage > self.player:getHp() + self:getAllPeachNum() then return "yes" end
-		end
-	elseif event == sgs.CardEffected then
-		local effect = data:toCardEffect()
-		for _, player in ipairs(players) do
-			if self.room:isProhibited(effect.from, player, effect.card) and self:isEnemy(effect.from, effect.to) then return "yes" end
-			if player:hasSkill("xiangle") and effect.card:isKindOf("Slash") then return "yes" end
-			if player:hasSkill("jiang") and ((effect.card:isKindOf("Slash") and effect.card:isRed()) or effect.card:isKindOf("Duel")) then return "yes" end
-			if player:hasSkill("tuntian") then return "yes" end
-		end
-	end
+--[[********************************************************************
+	Copyright (c) 2013-2014 - QSanguosha-Rara
 
-	if self.room:alivePlayerCount() <= 3 then return "yes" end
+  This file is part of QSanguosha-Hegemony.
 
-	if sgs.getValue(self.player) < 6 then return "no" end
+  This game is free software; you can redistribute it and/or
+  modify it under the terms of the GNU General Public License as
+  published by the Free Software Foundation; either version 3.0
+  of the License, or (at your option) any later version.
 
-	local skills_to_show = "bazhen|yizhong|zaiqi|feiying|buqu|kuanggu|kofkuanggu|guanxing|luoshen|tuxi|zhiheng|qiaobian|longdan|liuli|longhun|shelie|luoying|anxian|yicong|wushuang|jueqing|niepan"
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  General Public License for more details.
 
-	for _, player in ipairs(players) do
-		if self:hasSkills(skills_to_show, player) then return "yes" end
-	end
+  See the LICENSE file for more details.
 
-	if self.player:getDefensiveHorse() and self.player:getArmor() and not self:isWeak() then return "yes" end
-	
+  QSanguosha-Rara
+*********************************************************************]]
+
+sgs.ai_skill_invoke["userdefine:halfmaxhp"] = function(self)
+	return not self:needKongcheng(self.player, true) or self.player:getPhase() == sgs.Player_Play
 end
 
-sgs.ai_skill_choice.RevealGeneral = function(self, choices)
-	
-	if askForShowGeneral(self, choices) == "yes" then return "yes" end
-	
-	local anjiang = 0
-	for _, player in sgs.qlist(self.room:getOtherPlayers(self.player)) do
-		if player:getGeneralName() == "anjiang" then
-			anjiang = anjiang + 1
-		end
-	end
-	if math.random() > (anjiang + 1)/(self.room:alivePlayerCount() + 1) then
-		return "yes"
-	else
-		return "no"
-	end
+sgs.ai_skill_invoke["userdefine:changetolord"] = function(self)
+	return math.random() < 0.8
 end
 
-if sgs.GetConfig("EnableHegemony", false) then
-	local init = SmartAI.initialize
-	function SmartAI:initialize(player)
-		if not sgs.initialized then
-			for _, aplayer in sgs.qlist(player:getRoom():getAllPlayers()) do
-				sgs.ai_explicit[aplayer:objectName()] = ""
+sgs.ai_skill_choice.CompanionEffect = function(self, choice, data)
+	if ( self:isWeak() or self:needKongcheng(self.player, true) ) and string.find(choice, "recover") then return "recover"
+	else return "draw" end
+end
+
+sgs.ai_skill_invoke["userdefine:FirstShowReward"] = true
+
+
+sgs.ai_skill_choice.heg_nullification = function(self, choice, data)
+	local effect = data:toCardEffect()
+	if effect.card:isKindOf("AOE") or effect.card:isKindOf("GlobalEffect") then
+		if self:isFriendWith(effect.to) then return "all"
+		elseif self:isFriend(effect.to) then return "single"
+		elseif self:isEnemy(effect.to) then return "all"
+		end
+	end
+	return "all"
+end
+
+
+sgs.ai_skill_choice["GameRule:TriggerOrder"] = function(self, choices, data)
+
+	local canShowHead = string.find(choices, "GameRule_AskForGeneralShowHead")
+	local canShowDeputy = string.find(choices, "GameRule_AskForGeneralShowDeputy")
+
+	local firstShow = ("luanji|qianhuan"):split("|")
+	local bothShow = ("luanji+shuangxiong|luanji+huoshui|huoji+jizhi|luoshen+fangzhu|guanxing+jizhi"):split("|")
+	local needShowForAttack = ("chuanxin|suishi"):split("|")
+	local needShowForLead = ("qianhuan"):split("|")
+	local woundedShow = ("zaiqi|yinghun|hunshang|hengzheng"):split("|")
+	local followShow = ("qianhuan|duoshi|rende|shushen|cunsi|jieyin|xiongyi|shouyue|hongfa"):split("|")
+
+	local notshown, shown, allshown, f, e, eAtt = 0, 0, 0, 0, 0, 0
+	for _,p in sgs.qlist(self.room:getAlivePlayers()) do
+		if  not p:hasShownOneGeneral() then
+			notshown = notshown + 1
+		end
+		if p:hasShownOneGeneral() then
+			shown = shown + 1
+			if self:evaluateKingdom(p) == self.player:getKingdom() then
+				f = f + 1
+			else
+				e = e + 1
+				if self:isWeak(p) and p:getHp() == 1 and self.player:distanceTo(p) <= self.player:getAttackRange() then eAtt= eAtt + 1 end
 			end
 		end
-		init(self, player)
+		if p:hasShownAllGenerals() then
+			allshown = allshown + 1
+		end
 	end
-	sgs.ai_skill_choice.RevealGeneral = function(self, choices)
+
+	if self.player:inHeadSkills("baoling") then
+		if (self.player:hasSkill("luanwu") and self.player:getMark("@chaos") ~= 0)
+			or (self.player:hasSkill("xiongyi") and self.player:getMark("@arise") ~= 0) then
+			canShowHead = false
+		end
+	end
+	if self.player:inHeadSkills("baoling") then
+		if (self.player:hasSkill("mingshi") and allshown >= (self.room:alivePlayerCount() - 1))
+			or (self.player:hasSkill("luanwu") and self.player:getMark("@chaos") == 0)
+			or (self.player:hasSkill("xiongyi") and self.player:getMark("@arise") == 0) then
+			if canShowHead then
+				return "GameRule_AskForGeneralShowHead"
+			end
+		end
+	end
+
+	if self.player:hasSkill("guixiu") and not self.player:hasShownSkill("guixiu") then
+		if self:isWeak() or (shown > 0 and eAtt > 0 and e - f < 3 and not self:willSkipPlayPhase() ) then
+			if self.player:inHeadSkills("guixiu") and canShowHead then
+				return "GameRule_AskForGeneralShowHead"
+			elseif canShowDeputy then
+				return "GameRule_AskForGeneralShowDeputy"
+			end
+		end
+	end	
+	
+	if self.player:getMark("CompanionEffect") > 0 then
+		if self:isWeak() or (shown > 0 and eAtt > 0 and e - f < 3 and not self:willSkipPlayPhase()) then
+			if canShowHead then
+				return "GameRule_AskForGeneralShowHead"
+			elseif canShowDeputy then
+				return "GameRule_AskForGeneralShowDeputy"
+			end
+		end
+	end
+	
+	if self.player:getMark("HalfMaxHpLeft") > 0 then
+		if self:isWeak() and self:willShowForDefence() then
+			if canShowHead then
+				return math.random() < 0.5 or "GameRule_AskForGeneralShowHead"
+			elseif canShowDeputy then
+				return math.random() < 0.5 or "GameRule_AskForGeneralShowDeputy"
+			end
+		end
+	end
+	
+	if self.player:hasTreasure("JadeSeal") then
+		if not self.player:hasShownOneGeneral() then
+			if canShowHead then
+				return "GameRule_AskForGeneralShowHead"
+			elseif canShowDeputy then
+				return "GameRule_AskForGeneralShowDeputy"
+			end
+		end
+	end
+
+	if ((sgs.GetConfig("RewardTheFirstShowingPlayer", false) and shown == 0) or self:willShowForAttack()) and not self:willSkipPlayPhase() then
+		for _, skill in ipairs(bothShow) do
+			if self.player:hasSkills(skill) then
+				if canShowHead then
+					return math.random() < 0.5 or "GameRule_AskForGeneralShowHead"
+				elseif canShowDeputy then
+					return math.random() < 0.5 or "GameRule_AskForGeneralShowDeputy"
+				end
+			end
+		end
+	end	
 		
-		if askForShowGeneral(self, choices) == "yes" then return "yes" end
-
-		for _, player in sgs.qlist(self.room:getOtherPlayers(self.player)) do
-			if self:isFriend(player) then return "yes" end
-		end
-
-		if sgs.ai_loyalty[self:getHegKingdom()][self.player:objectName()] == 160 then return "yes" end
-
-		local anjiang = 0
-		for _, player in sgs.qlist(self.room:getOtherPlayers(self.player)) do
-			if player:getGeneralName() == "anjiang" then
-				anjiang = anjiang + 1
-			end
-		end
-
-		if math.random() > (anjiang + 1)/(self.room:alivePlayerCount() + 2) then
-			return "yes"
-		else
-			return "no"
-		end
-	end
-
-	sgs.isRolePredictable = function()
-		return false
-	end
-
-	sgs.ai_loyalty = {
-		wei = {},
-		wu = {},
-		shu = {},
-		qun = {},
-	}
-	sgs.ai_explicit = {}
-
-	SmartAI.hasHegSkills = function(self, skills, players)
-		for _, player in ipairs(players) do
-			if self:hasSkills(skills, player) then return true end
-		end
-		return false
-	end
-
-	SmartAI.getHegKingdom = function(self)
-		local names = self.room:getTag(self.player:objectName()):toStringList()
-		if #names == 0 then return self.player:getKingdom() end
-		local kingdom = sgs.Sanguosha:getGeneral(names[1]):getKingdom()
-		return kingdom
-	end
-
-	SmartAI.getHegGeneralName = function(self, player)
-		player = player or self.player
-		local names = self.room:getTag(player:objectName()):toStringList()
-		if #names > 0 then return names[1] else return player:getGeneralName() end
-	end
-
-	SmartAI.objectiveLevel = function(self, player, recursive)
-		if not player then return 0 end
-		if self.player == player then return -5 end
-		local lieges = {}
-		local liege_hp = 0
-		for _, aplayer in sgs.qlist(self.room:getOtherPlayers(self.player)) do
-			if self:getHegKingdom() == aplayer:getKingdom() then table.insert(lieges, aplayer) end
-			liege_hp = liege_hp + aplayer:getHp()
-		end
-
-		local plieges = {}
-		local modifier = 0
-		for _, aplayer in sgs.qlist(self.room:getOtherPlayers(self.player)) do
-			local kingdom = aplayer:getKingdom()
-			if kingdom == "god" then kingdom = sgs.ai_explicit[aplayer:objectName()] end
-			if kingdom then plieges[kingdom] = (plieges[kingdom] or 0) + 1 end
-		end
-		local kingdoms = { "wei", "wu", "shu", "qun" }
-		local max_kingdom = 0
-		for _, akingdom in ipairs(kingdoms) do
-			if (plieges[akingdom] or 0) > max_kingdom then max_kingdom = plieges[akingdom] end
-		end
-
-		if max_kingdom > 0 then
-			local kingdom = player:getKingdom()
-			if kingdom == "god" then kingdom = sgs.ai_explicit[player:objectName()] end
-			if not kingdom or (plieges[kingdom] or 0) < max_kingdom then modifier = -2
-			elseif (plieges[kingdom] or 0) > 2 then modifier = 2 end
-		end
-
-		if self:getHegKingdom() == player:getKingdom() then
-			if recursive then return -3 end
-			if self.player:getKingdom() == "god" and #lieges >= 2 then
-				self:sort(lieges, "hp")
-				if player:objectName() ~= lieges[1]:objectName() then return -3 end
-				local enemy, enemy_hp = 0, 0
-				for _, aplayer in sgs.qlist(self.room:getOtherPlayers(self.player)) do
-					if self:objectiveLevel(aplayer, true) > 0 then enemy = enemy + 1 enemy_hp = enemy_hp + aplayer:getHp() end
-				end
-				local liege
-				if enemy_hp - enemy >= liege_hp - #lieges then return -3 else return 4 end
-			end
-			return -3
-		elseif player:getKingdom() ~= "god" then return 5 + modifier
-		elseif sgs.ai_explicit[player:objectName()] == self:getHegKingdom() then
-			if self.player:getKingdom() ~= "god" and #lieges >= 1 and not recursive then
-				for _, aplayer in sgs.qlist(self.room:getOtherPlayers(self.player)) do
-					if self:objectiveLevel(aplayer, true) >= 0 then return -1 end
-				end
-				return 4
-			end
-			return -1
-		elseif (sgs.ai_loyalty[self:getHegKingdom()][player:objectName()] or 0) == -160 then return 5 + modifier
-		elseif (sgs.ai_loyalty[self:getHegKingdom()][player:objectName()] or 0) < -80 then return 4 + modifier
-		end
-
-		return 0
-	end
-
-	SmartAI.isFriend = function(self, player)
-		return self:objectiveLevel(player) < 0
-	end
-
-	SmartAI.isEnemy = function(self, player)
-		return self:objectiveLevel(player) >= 0
-	end
-
-	sgs.ai_card_intention["general"] = function(to, level)
-		sgs.hegemony_to = to
-		return -level
-	end
-
-	sgs.updateIntention = function(player, to, intention)
-		intention = -intention
-		local kingdoms = {"wei", "wu", "shu", "qun"}
-		if player:getKingdom() ~= "god" then
-			for _, akingdom in ipairs(kingdoms) do
-				sgs.ai_loyalty[akingdom][player:objectName()] = -160
-			end
-			sgs.ai_loyalty[player:getKingdom()][player:objectName()] = 160
-			sgs.ai_explicit[player:objectName()] = player:getKingdom()
-			return
-		end
-		local kingdom = to:getKingdom()
-		if kingdom ~= "god" then
-			sgs.ai_loyalty[kingdom][player:objectName()] = (sgs.ai_loyalty[kingdom][player:objectName()] or 0) + intention
-			if sgs.ai_loyalty[kingdom][player:objectName()] > 160 then sgs.ai_loyalty[kingdom][player:objectName()] = 160 end
-			if sgs.ai_loyalty[kingdom][player:objectName()] < -160 then sgs.ai_loyalty[kingdom][player:objectName()] = -160 end
-		elseif sgs.ai_explicit[player:objectName()] ~= "" then
-			kingdom = sgs.ai_explicit[player:objectName()]
-			sgs.ai_loyalty[kingdom][player:objectName()] = (sgs.ai_loyalty[kingdom][player:objectName()] or 0) + intention * 0.7
-			if sgs.ai_loyalty[kingdom][player:objectName()] > 160 then sgs.ai_loyalty[kingdom][player:objectName()] = 160 end
-			if sgs.ai_loyalty[kingdom][player:objectName()] < -160 then sgs.ai_loyalty[kingdom][player:objectName()] = -160 end
-		else
-			for _, aplayer in sgs.qlist(player:getRoom():getAlivePlayers()) do
-				local kingdom = aplayer:getKingdom()
-				if aplayer:objectName() ~= to:objectName() and kingdom ~= "god" and (sgs.ai_loyalty[kingdom][player:objectName()] or 0) > -80 then
-					sgs.ai_loyalty[kingdom][player:objectName()] = (sgs.ai_loyalty[kingdom][player:objectName()] or 0) - intention * 0.2
-					if sgs.ai_loyalty[kingdom][player:objectName()] > 160 then sgs.ai_loyalty[kingdom][player:objectName()] = 160 end
-					if sgs.ai_loyalty[kingdom][player:objectName()] < -160 then sgs.ai_loyalty[kingdom][player:objectName()] = -160 end
+	if sgs.GetConfig("RewardTheFirstShowingPlayer", false) and shown == 0 and not self:willSkipPlayPhase() then
+		for _, skill in ipairs(firstShow) do
+			if self.player:hasSkill(skill) and not self.player:hasShownOneGeneral() then
+				if self.player:inHeadSkills(skill) and canShowHead then
+					return math.random() < 0.4 or "GameRule_AskForGeneralShowHead"
+				elseif canShowDeputy then
+					return math.random() < 0.3 or "GameRule_AskForGeneralShowDeputy"
 				end
 			end
 		end
-		local neg_loyalty_count, pos_loyalty_count, max_loyalty, max_kingdom = 0, 0
-		for _, akingdom in ipairs(kingdoms) do
-			local list = sgs.ai_loyalty[akingdom]
-			if not max_loyalty then max_loyalty = (list[player:objectName()] or 0) max_kingdom = akingdom end
-			if (list[player:objectName()] or 0) < 0 then
-				neg_loyalty_count = neg_loyalty_count + 1
-			elseif (list[player:objectName()] or 0) > 0 then
-				pos_loyalty_count = pos_loyalty_count + 1
-			end
-			if max_loyalty < (list[player:objectName()] or 0) then
-				max_loyalty = (list[player:objectName()] or 0)
-				max_kingdom = akingdom
+	end
+
+	if shown > 0 and eAtt > 0 and e - f < 3 and not self:willSkipPlayPhase() then
+		for _, skill in ipairs(needShowForAttack) do
+			if self.player:hasSkill(skill) and not self.player:hasShownOneGeneral() then
+				if self.player:inHeadSkills(skill) and canShowHead then
+					return math.random() < 0.5 or "GameRule_AskForGeneralShowHead"
+				elseif canShowDeputy then
+					return math.random() < 0.2 or "GameRule_AskForGeneralShowDeputy"
+				end
 			end
 		end
-		if neg_loyalty_count > 2 or pos_loyalty_count > 0 then
-			sgs.ai_explicit[player:objectName()] = max_kingdom
-		else
-			sgs.ai_explicit[player:objectName()] = ""
+	end
+
+	if shown > 0 and notshown > self.room:alivePlayerCount()/2 then
+		for _, skill in ipairs(needShowForLead) do
+			if self.player:hasSkill(skill) and not self.player:hasShownOneGeneral() then
+				if self.player:inHeadSkills(skill) and canShowHead then
+					return math.random() < 0.3 or "GameRule_AskForGeneralShowHead"
+				elseif canShowDeputy then
+					return math.random() < 0.2 or "GameRule_AskForGeneralShowDeputy"
+				end
+			end
 		end
 	end
 
-	SmartAI.updatePlayers = function(self, inclusive)
-		local flist = {}
-		local elist = {}
-		self.friends = flist
-		self.enemies = elist
-		self.friends_noself = {}
-
-		local players = sgs.QList2Table(self.room:getOtherPlayers(self.player))
-		for _, aplayer in ipairs(players) do
-			if self:isFriend(aplayer) then table.insert(flist, aplayer) end
-		end
-		for _, aplayer in ipairs(flist) do
-			table.insert(self.friends_noself, aplayer)
-		end
-		table.insert(flist, self.player)
-		for _, aplayer in ipairs(players) do
-			if self:isEnemy(aplayer) then table.insert(elist, aplayer) end
+	if self.player:getLostHp() >= 2 then
+		for _, skill in ipairs(woundedShow) do
+			if self.player:hasSkill(skill) and not self.player:hasShownOneGeneral() then
+				if self.player:inHeadSkills(skill) and canShowHead then
+					return math.random() < 0.5 or "GameRule_AskForGeneralShowHead"
+				elseif canShowDeputy then
+					return math.random() < 0.3 or "GameRule_AskForGeneralShowDeputy"
+				end
+			end
 		end
 	end
 
-	SmartAI.printAll = function(self, player, intention)
-		local name = player:objectName()
-		self.room:writeToConsole(self:getHegGeneralName(player) .. math.floor(intention * 10) / 10
-								.. " R" .. math.floor((sgs.ai_loyalty["shu"][name] or 0) * 10) / 10
-								.. " G" .. math.floor((sgs.ai_loyalty["wu"][name] or 0) * 10) / 10
-								.. " B" .. math.floor((sgs.ai_loyalty["wei"][name] or 0) * 10) / 10
-								.. " Q" .. math.floor((sgs.ai_loyalty["qun"][name] or 0) * 10) / 10
-								.. " E" .. (sgs.ai_explicit[name] or "nil"))
+	for _, skill in ipairs(followShow) do
+		if self.player:hasSkill(skill) and not self.player:hasShownOneGeneral() then
+			for _, skill in ipairs(needShowForLead) do
+				if self.player:hasSkill(skill)  then
+					if self.player:inHeadSkills(skill) and canShowHead then
+						return math.random() < 0.5 or "GameRule_AskForGeneralShowHead"
+					elseif canShowDeputy then
+						return math.random() < 0.3 or "GameRule_AskForGeneralShowDeputy"
+					end
+				end
+			end
+			if (shown > 0 and e < notshown-1 ) or (self.player:hasShownOneGeneral()) then
+				if self.player:inHeadSkills(skill) and canShowHead then
+					return math.random() < 0.4 or "GameRule_AskForGeneralShowHead"
+				elseif canShowDeputy then
+					return math.random() < 0.4 or "GameRule_AskForGeneralShowDeputy"
+				end
+			end
+		end
+		for _,p in sgs.qlist(self.room:getOtherPlayers(player)) do
+			if p:hasShownSkill(skill) and p:getKingdom() == self.player:getKingdom() and not self.player:hasShownOneGeneral() then
+				if canShowHead and canShowDeputy  then
+					local cho = { "GameRule_AskForGeneralShowHead", "GameRule_AskForGeneralShowDeputy"}
+					return cho[math.random(1, #cho)]
+				elseif canShowHead then
+					return math.random() < 0.5 or "GameRule_AskForGeneralShowHead"
+				elseif canShowDeputy then
+					return math.random() < 0.4 or "GameRule_AskForGeneralShowDeputy"
+				end
+			end
+		end
 	end
 
-	SmartAI.printFEList = function(self)
-		for _, player in ipairs (self.enemies) do
-			self.room:writeToConsole("enemy " .. self:getHegGeneralName(player))
-		end
-
-		for _, player in ipairs (self.friends_noself) do
-			self.room:writeToConsole("friend " .. self:getHegGeneralName(player))
-		end
-		self.room:writeToConsole(self:getHegGeneralName() .. " list end")
+	local skillTrigger = false
+	local skillnames = choices:split("+")
+	table.removeOne(skillnames, "GameRule_AskForGeneralShowHead")
+	table.removeOne(skillnames, "GameRule_AskForGeneralShowDeputy")
+	table.removeOne(skillnames, "cancel")
+	if #skillnames ~= 0 then
+		skillTrigger = true
 	end
+
+	if skillTrigger then
+		if string.find(choices, "jieming") then return "jieming" end
+		if string.find(choices, "fankui") and string.find(choices, "ganglie") then return "fankui" end
+		if string.find(choices, "xunxun") and string.find(choices, "ganglie") then return "ganglie" end
+		if string.find(choices, "luoshen") and string.find(choices, "guanxing") then return "luoshen" end
+
+		local except = {}
+		for _, skillname in ipairs(skillnames) do
+			local invoke = self:askForSkillInvoke(skillname, data)
+			if invoke == true then
+				return skillname
+			elseif invoke == false then
+				table.insert(except, skillname)
+			end
+		end
+		if string.find(choices, "cancel") and not canShowHead and not canShowDeputy and sgs.isAnjiang(self.player) then
+			return "cancel"
+		end
+		table.removeTable(skillnames, except)
+
+		if #skillnames > 0 then return skillnames[math.random(1, #skillnames)] end
+	end
+
+	return "cancel"
 end
 
+sgs.ai_skill_choice["GameRule:TurnStart"] = function(self, choices, data)
+	local choice = sgs.ai_skill_choice["GameRule:TriggerOrder"](self, choices, data)
+	if choice == "cancel" then
+		local canShowHead = string.find(choices, "GameRule_AskForGeneralShowHead")
+		local canShowDeputy = string.find(choices, "GameRule_AskForGeneralShowDeputy")
+		if canShowHead then
+			if self.player:isDuanchang() then return "GameRule_AskForGeneralShowHead" end
+			for _, p in ipairs(self.enemies) do
+				if p:hasShownSkills("mingshi|huoshui") then return math.random() < 0.4 or "GameRule_AskForGeneralShowHead" end
+			end
+		elseif canShowDeputy then
+			if self.player:isDuanchang() then return "GameRule_AskForGeneralShowDeputy" end
+			for _, p in ipairs(self.enemies) do
+				if p:hasShownSkills("mingshi|huoshui") then return math.random() < 0.4 or "GameRule_AskForGeneralShowDeputy" end
+			end
+		end
+
+		if not self.player:hasShownOneGeneral() then
+			local gameProcess = sgs.gameProcess():split(">>")
+			if self.player:getKingdom() == gameProcess[1] and (self.player:getLord() or sgs.shown_kingdom[self.player:getKingdom()] < self.player:aliveCount() / 2) then
+				if canShowHead then return math.random() < 0.6 or "GameRule_AskForGeneralShowHead"
+				elseif canShowDeputy then return math.random() < 0.6 or "GameRule_AskForGeneralShowDeputy" end
+			end
+		end
+
+	end
+	return choice
+end
+
+sgs.ai_skill_invoke.GameRule_AskForArraySummon = function(self, data)
+	return self:willShowForDefence() or self:willShowForAttack()
+end
+
+sgs.ai_skill_invoke.SiegeSummon = true
+sgs.ai_skill_invoke["SiegeSummon!"] = false
+
+sgs.ai_skill_invoke.FormationSummon = true
+sgs.ai_skill_invoke["FormationSummon!"] = false

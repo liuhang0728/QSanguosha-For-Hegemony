@@ -13,8 +13,11 @@
   <property name="windowTitle">
    <string>Card Overvew</string>
   </property>
-  <layout class="QHBoxLayout" name="horizontalLayout_2">
-   <item>
+  <property name="styleSheet">
+   <string notr="true"/>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="1" column="0">
     <widget class="QTableWidget" name="tableWidget">
      <property name="maximumSize">
       <size>
@@ -66,7 +69,7 @@
      </column>
     </widget>
    </item>
-   <item>
+   <item row="1" column="1">
     <widget class="QFrame" name="frame">
      <property name="maximumSize">
       <size>
@@ -126,8 +129,8 @@
            <widget class="QPushButton" name="femalePlayButton">
             <property name="minimumSize">
              <size>
-              <width>100</width>
-              <height>23</height>
+              <width>85</width>
+              <height>30</height>
              </size>
             </property>
             <property name="maximumSize">
@@ -145,9 +148,9 @@
         </item>
         <item>
          <widget class="QPushButton" name="playAudioEffectButton">
-           <property name="text">
-             <string>Play audio effect</string>
-           </property>
+          <property name="text">
+           <string>Play audio effect</string>
+          </property>
          </widget>
         </item>
         <item>
@@ -163,9 +166,23 @@
           </property>
          </widget>
         </item>
+        <item>
+         <widget class="QPushButton" name="closeButton">
+          <property name="text">
+           <string>Close</string>
+          </property>
+         </widget>
+        </item>
        </layout>
       </item>
      </layout>
+    </widget>
+   </item>
+   <item row="0" column="0">
+    <widget class="QLabel" name="titleLabel">
+     <property name="text">
+      <string>Card Overview</string>
+     </property>
     </widget>
    </item>
   </layout>

@@ -1,3 +1,23 @@
+/********************************************************************
+    Copyright (c) 2013-2014 - QSanguosha-Rara
+
+    This file is part of QSanguosha-Hegemony.
+
+    This game is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License as
+    published by the Free Software Foundation; either version 3.0
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    See the LICENSE file for more details.
+
+    QSanguosha-Rara
+    *********************************************************************/
+
 #ifndef _ROOM_THREAD_H
 #define _ROOM_THREAD_H
 
@@ -12,7 +32,7 @@ class GameRule;
 struct LogMessage {
     LogMessage();
     QString toString() const;
-    Json::Value toJsonValue() const;
+    QVariant toVariant() const;
 
     QString type;
     ServerPlayer *from;
@@ -25,7 +45,7 @@ struct LogMessage {
 class EventTriplet {
 public:
     inline EventTriplet(TriggerEvent triggerEvent, Room *room, ServerPlayer *target)
-               : _m_event(triggerEvent), _m_room(room), _m_target(target) {}
+        : _m_event(triggerEvent), _m_room(room), _m_target(target) {}
     QString toString() const;
 
 private:
@@ -34,7 +54,7 @@ private:
     ServerPlayer *_m_target;
 };
 
-class RoomThread: public QThread {
+class RoomThread : public QThread {
     Q_OBJECT
 
 public:
@@ -47,10 +67,6 @@ public:
 
     void addTriggerSkill(const TriggerSkill *skill);
     void delay(long msecs = -1);
-    ServerPlayer *find3v3Next(QList<ServerPlayer *> &first, QList<ServerPlayer *> &second);
-    void run3v3(QList<ServerPlayer *> &first, QList<ServerPlayer *> &second, GameRule *game_rule, ServerPlayer *current);
-    void actionHulaoPass(ServerPlayer *shenlvbu, QList<ServerPlayer *> league, GameRule *game_rule, int stage);
-    ServerPlayer *findHulaoPassNext(ServerPlayer *shenlvbu, QList<ServerPlayer *> league, int stage);
     void actionNormal(GameRule *game_rule);
 
     const QList<EventTriplet> *getEventStack() const;
@@ -59,8 +75,6 @@ protected:
     virtual void run();
 
 private:
-    void _handleTurnBroken3v3(QList<ServerPlayer *> &first, QList<ServerPlayer *> &second, GameRule *game_rule);
-    void _handleTurnBrokenHulaoPass(ServerPlayer *shenlvbu, QList<ServerPlayer *> league, GameRule *game_rule, int stage);
     void _handleTurnBrokenNormal(GameRule *game_rule);
 
     Room *room;
@@ -70,6 +84,7 @@ private:
     QSet<QString> skillSet;
 
     QList<EventTriplet> event_stack;
+    GameRule *game_rule;
 };
 
 #endif

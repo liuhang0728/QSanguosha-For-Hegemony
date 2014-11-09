@@ -35,12 +35,23 @@ CommonTranslationTable = {
 	["EquipCard"] = "装备牌",
 	["ndtrick"] = "非延时锦囊",
 	["nothing"] = "不发动",
+	["handcards"] = "手牌",
+
+	["compulsory"] = "锁定技，",
+	["once_per_turn"] = "出牌阶段限一次，",
+	["limited"] = "限定技，",
+	["head"] = "主将技，",
+	["deputy"] = "副将技，",
+	["array"] = "阵法技，",
+	["lord"] = "君主技，",
 
 	["spade_char"] = "♠",
 	["club_char"] = "♣",
 	["heart_char"] = "♥",
 	["diamond_char"] = "♦",
 	["no_suit_char"] = "无色",
+	["no_suit_black_char"] = "黑色",
+	["no_suit_red_char"] = "红色",
 	["start"] = "开始",
 	["judge"] = "判定",
 	["retrial"] = "改判",
@@ -72,6 +83,7 @@ CommonTranslationTable = {
 	["female"] = "女性",
 	["discardPile"] = "弃牌堆",
 	["drawPileTop"] = "牌堆顶",
+	["drawPileBottom"] = "牌堆底",
 
 	["use upon"] = "对",
 	["yourself"] = "你",
@@ -90,14 +102,17 @@ CommonTranslationTable = {
 	["armor"] = "防具",
 	["defensive_horse"] = "+1坐骑",
 	["offensive_horse"] = "-1坐骑",
-	
+	["treasure"] = "宝物",
+
 	["luck_card"] = "手气卡",
 
 	["wei"] = "魏",
 	["shu"] = "蜀",
 	["wu"] = "吴",
 	["qun"] = "群",
+	["careerist"] = "野心家",
 	["god"] = "神",
+	["default"] = "默认",
 
 	["#Murder"] = "%to【%arg】 阵亡，伤害来源为 %from",
 	["#Suicide"] = "%to【%arg】 自杀",
@@ -114,7 +129,13 @@ CommonTranslationTable = {
 	["#AskForPeaches"] = "%from 向 %to 求桃，一共需要 %arg 张【<font color=\"yellow\"><b>桃</b></font>】",
 	["#ChooseKingdom"] = "%from 选择了 %arg 势力",
 	["#NullificationDetails"] = "【<font color=\"yellow\"><b>无懈可击</b></font>】的目标是 %from 对 %to 的锦囊 【%arg】",
-	["#SkillAvoid"] = "%from 的“%arg”被触发，不能被选择为此 【%arg2】 的目标",
+	["#HegNullificationDetails"] = "【<font color=\"yellow\"><b>无懈可击·国</b></font>】的目标是 %from 对 %to 的锦囊 【%arg】",
+	["#HegNullificationEffect"] = "【<font color=\"yellow\"><b>无懈可击·国</b></font>】生效， 目标是 %from 对 %to 的锦囊 【%arg】",
+	["#HegNullificationSelection"] = "%from 选择了该【<font color=\"yellow\"><b>无懈可击·国</b></font>】为 %arg" ,
+	["hegnul_single"] = "对单一角色生效" ,
+	["hegnul_all"] = "对该势力的全体剩余角色生效" ,
+	["#SkillAvoid"] = "受到“%arg”的影响，%from 不能被选择为此【%arg2】的目标",
+	["#CardNullified"] = "【%arg】对 %from 无效",
 	["#Transfigure"] = "%from 变身为 %arg",
 	["#TransfigureDual"] = "%from 的 %arg2 变身为 %arg",
 	["#AcquireSkill"] = "%from 获得了技能“%arg”",
@@ -126,7 +147,7 @@ CommonTranslationTable = {
 	["$LightningMove"] = "%card 从 %from 移动到 %to",
 	["$TurnOver"] = "%from 展示了牌堆顶的 %card",
 	["$DiscardCard"] = "%from 弃置了 %card",
-	["$DiscardCardWithSkill"] = "%from 发动“%arg”弃置了 %card",
+	["$DiscardCardWithSkill"] = "%from 弃置了 %card 发动“%arg”",
 	["$DiscardCardByOther"] = "%from 弃置了 %to 的卡牌 %card",
 	["$EnterDiscardPile"] = "%card 被置入弃牌堆",
 	["$MoveToDiscardPile"] = "%from 将 %card 置入弃牌堆",
@@ -140,6 +161,8 @@ CommonTranslationTable = {
 	["$JileiShowAllCards"] = "%from 展示了不能弃置的手牌 %card",
 	["$PutCard"] = "%from 的 %card 被置于牌堆顶",
 	["#PutCard"] = "%from 的 %arg 张牌被置于牌堆顶",
+	["$PutCardToDrawPileBottom"] = "%from 的 %card 被置于牌堆底",
+	["#PutCardToDrawPileBottom"] = "%from 的 %arg 张牌被置于牌堆底",
 	["normal_nature"] = "无属性",
 	["fire_nature"] = "火焰属性",
 	["thunder_nature"] = "雷电属性",
@@ -156,9 +179,9 @@ CommonTranslationTable = {
 	["$JudgeResult"] = "%from 的判定结果为 %card",
 	["$PindianResult"] = "%from 的拼点牌为 %card",
 	["#ChooseSuit"] = "%from 选择了花色 %arg",
-	["#TurnOver"] = "%from 将武将牌翻面，现在是 %arg",
-	["face_up"] = "正面朝上",
-	["face_down"] = "背面朝上",
+	["#TurnOver"] = "%from 将武将牌叠置，现在是 %arg",
+	["face_up"] = "平置状态",
+	["face_down"] = "叠置状态",
 	["#SkipPhase"] = "%from 跳过了 %arg 阶段",
 	["#SkipAllPhase"] = "%from 当前回合结束",
 	["#IronChainDamage"] = "%from 处于横置状态，将受到传导的属性伤害",
@@ -181,8 +204,6 @@ CommonTranslationTable = {
 	["$CancelTarget"] = "%from 使用【%arg】的目标 %to 被取消",
 	["$CancelTargetNoUser"] = "【%arg】的目标 %to 被取消",
 	["$ViewRole"] = "%from 观看了 %to 的身份 %arg",
-	["$CancelTarget"] = "%from 使用【%arg】的目标 %to 被取消",
-	["$CancelTargetNoUser"] = "【%arg】的目标 %to 被取消", 
 	["#UseLuckCard"] = "%from 使用了 <font color=\"yellow\"><b>手气卡</b></font>",
 
 	["cw"] = "顺时针",
@@ -208,6 +229,26 @@ CommonTranslationTable = {
 	["CAPITAL(8)"] = "八",
 	["CAPITAL(9)"] = "九",
 	["CAPITAL(10)"] = "十",
+
+	["SEAT(1)"] = "一号位",
+	["SEAT(2)"] = "二号位",
+	["SEAT(3)"] = "三号位",
+	["SEAT(4)"] = "四号位",
+	["SEAT(5)"] = "五号位",
+	["SEAT(6)"] = "六号位",
+	["SEAT(7)"] = "七号位",
+	["SEAT(8)"] = "八号位",
+	["SEAT(9)"] = "九号位",
+	["SEAT(10)"] = "十号位",
+
+	["HorseCorrect"] = "坐骑",
+
+	["#DanlaoAvoid"] = "“%arg2”效果被触发，【%arg】 对 %from 无效",
+
+	["custom_scenario"] = "自定义场景",
+	
+	["Player"] = "玩家",
+	["AI"] = "机器人"
 }
 
 return CommonTranslationTable

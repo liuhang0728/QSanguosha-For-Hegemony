@@ -1,14 +1,34 @@
+/********************************************************************
+    Copyright (c) 2013-2014 - QSanguosha-Rara
+
+    This file is part of QSanguosha-Hegemony.
+
+    This game is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License as
+    published by the Free Software Foundation; either version 3.0
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    See the LICENSE file for more details.
+
+    QSanguosha-Rara
+    *********************************************************************/
+
 #ifndef _PACKAGE_H
 #define _PACKAGE_H
-
-class Skill;
-class Card;
-class Player;
 
 #include <QObject>
 #include <QHash>
 #include <QStringList>
 #include <QMap>
+
+class Card;
+class Player;
+class Skill;
 
 class CardPattern {
 public:
@@ -16,9 +36,14 @@ public:
     virtual bool willThrow() const{
         return true;
     }
+    virtual QString getPatternString() const{
+        return QString();
+    }
+
+    virtual ~CardPattern() {}
 };
 
-class Package: public QObject {
+class Package : public QObject {
     Q_OBJECT
     Q_ENUMS(Type)
 
@@ -63,9 +88,13 @@ public:
         related_skills.insertMulti(main_skill, related_skill);
     }
 
+    void insertRelatedSkills(const QString &main_skill, int n, ...);
+
     inline void insertConvertPairs(const QString &from, const QString &to) {
         convert_pairs.insertMulti(from, to);
     }
+
+    virtual ~Package();
 
 protected:
     QList<const QMetaObject *> metaobjects;

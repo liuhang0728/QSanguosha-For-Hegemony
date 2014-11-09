@@ -1,14 +1,35 @@
+/********************************************************************
+    Copyright (c) 2013-2014 - QSanguosha-Rara
+
+    This file is part of QSanguosha-Hegemony.
+
+    This game is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License as
+    published by the Free Software Foundation; either version 3.0
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    See the LICENSE file for more details.
+
+    QSanguosha-Rara
+    *********************************************************************/
+
 #ifndef _ENGINE_H
 #define _ENGINE_H
 
-#include "RoomState.h"
+#include "roomstate.h"
 #include "card.h"
 #include "general.h"
 #include "skill.h"
 #include "package.h"
 #include "exppattern.h"
-#include "protocol.h"
 #include "util.h"
+#include "version.h"
+#include "aux-skills.h"
 
 #include <QHash>
 #include <QStringList>
@@ -23,10 +44,11 @@ class LuaBasicCard;
 class LuaTrickCard;
 class LuaWeapon;
 class LuaArmor;
+class LuaTreasure;
 
 struct lua_State;
 
-class Engine: public QObject {
+class Engine : public QObject {
     Q_OBJECT
 
 public:
@@ -34,24 +56,43 @@ public:
     ~Engine();
 
     void addTranslationEntry(const char *key, const char *value);
-    QString translate(const QString &to_translate) const;
+    QString translate(const QString &toTranslate) const;
+    QString translate(const QString &toTranslate, const QString &defaultValue) const;
     lua_State *getLuaState() const;
 
     int getMiniSceneCounts();
 
     void addPackage(Package *package);
     void addBanPackage(const QString &package_name);
+    QList<const Package *> getPackages() const;
+
     QStringList getBanPackages() const;
     Card *cloneCard(const Card *card) const;
     Card *cloneCard(const QString &name, Card::Suit suit = Card::SuitToBeDecided, int number = -1, const QStringList &flags = QStringList()) const;
     SkillCard *cloneSkillCard(const QString &name) const;
-    QString getVersionNumber() const;
+    //************************************
+    // Method:    getVersionNumber
+    // FullName:  Engine::getVersionNumber
+    // Access:    public
+    // Returns:   QSanVersionNumber
+    // Qualifier: const
+    // Description: Get current version number.
+    //
+    // Last Updated By Fsu0413
+    // To update version number
+    //
+    // QSanguosha-Rara
+    // June 2 2014
+    //************************************
+    QSanVersionNumber getVersionNumber() const;
     QString getVersion() const;
     QString getVersionName() const;
     QString getMODName() const;
     QStringList getExtensions() const;
     QStringList getKingdoms() const;
     QColor getKingdomColor(const QString &kingdom) const;
+    QMap<QString, QColor> getSkillColorMap() const;
+    QColor getSkillColor(const QString &skill_type) const;
     QStringList getChattingEasyTexts() const;
     QString getSetupString() const;
 
@@ -60,7 +101,6 @@ public:
     int getPlayerCount(const QString &mode) const;
     QString getRoles(const QString &mode) const;
     QStringList getRoleList(const QString &mode) const;
-    int getRoleIndex() const;
 
     const CardPattern *getPattern(const QString &name) const;
     bool matchExpPattern(const QString &pattern, const Player *player, const Card *card) const;
@@ -84,6 +124,7 @@ public:
     QList<const MaxCardsSkill *> getMaxCardsSkills() const;
     QList<const TargetModSkill *> getTargetModSkills() const;
     QList<const TriggerSkill *> getGlobalTriggerSkills() const;
+    QList<const AttackRangeSkill *> getAttackRangeSkills() const;
     void addSkills(const QList<const Skill *> &skills);
 
     int getCardCount() const;
@@ -92,13 +133,56 @@ public:
     Card *getCard(int cardId);
     WrappedCard *getWrappedCard(int cardId);
 
-    QStringList getLords(bool contain_banned = false) const;
-    QStringList getRandomLords() const;
-    void banRandomGods() const;
+    //************************************
+    // Method:    getRandomGenerals
+    // FullName:  Engine::getRandomGenerals
+    // Access:    public
+    // Returns:   QT_NAMESPACE::QStringList
+    // Qualifier: const
+    // Parameter: int count
+    // Parameter: const QSet<QString> & ban_set
+    // Description: Get [count] available generals and no one is in [ban_set].
+    //
+    // Last Updated By Yanguam Siliagim
+    // To use a proper way to convert generals and cards
+    //
+    // QSanguosha-Rara
+    // March 17 2014
+    //************************************
     QStringList getRandomGenerals(int count, const QSet<QString> &ban_set = QSet<QString>()) const;
+    //************************************
+    // Method:    getRandomCards
+    // FullName:  Engine::getRandomCards
+    // Access:    public
+    // Returns:   QList<int>
+    // Qualifier: const
+    // Description: Get IDs of all the available cards.
+    //
+    // Last Updated By Yanguam Siliagim
+    // To use a proper way to convert generals and cards
+    //
+    // QSanguosha-Rara
+    // March 17 2014
+    //************************************
     QList<int> getRandomCards() const;
     QString getRandomGeneralName() const;
+    //************************************
+    // Method:    getLimitedGeneralNames
+    // FullName:  Engine::getLimitedGeneralNames
+    // Access:    public
+    // Returns:   QT_NAMESPACE::QStringList
+    // Qualifier: const
+    // Description: It was designed to get the list of all available generals.
+    //
+    // Last Updated By Yanguam Siliagim
+    // To use a proper way to convert generals and cards
+    //
+    // QSanguosha-Rara
+    // March 17 2014
+    //************************************
     QStringList getLimitedGeneralNames() const;
+    QStringList getGeneralNames() const;
+    GeneralList getGeneralList() const;
 
     void playSystemAudioEffect(const QString &name) const;
     void playAudioEffect(const QString &filename) const;
@@ -106,8 +190,9 @@ public:
 
     const ProhibitSkill *isProhibited(const Player *from, const Player *to, const Card *card, const QList<const Player *> &others = QList<const Player *>()) const;
     int correctDistance(const Player *from, const Player *to) const;
-    int correctMaxCards(const Player *target, bool fixed = false) const;
+    int correctMaxCards(const ServerPlayer *target, bool fixed = false, MaxCardsType::MaxCardsCount type = MaxCardsType::Max) const;
     int correctCardTarget(const TargetModSkill::ModType type, const Player *from, const Card *card) const;
+    int correctAttackRange(const Player *target, bool include_weapon = true, bool fixed = false) const;
 
     void registerRoom(QObject *room);
     void unregisterRoom();
@@ -118,8 +203,9 @@ public:
     QString getCurrentCardUsePattern();
     CardUseStruct::CardUseReason getCurrentCardUseReason();
 
-    QString findConvertFrom(const QString &general_name) const;
     bool isGeneralHidden(const QString &general_name) const;
+
+    TransferSkill *getTransfer() const;
 
 private:
     void _loadMiniScenarios();
@@ -127,7 +213,8 @@ private:
 
     QMutex m_mutex;
     QHash<QString, QString> translations;
-    QHash<QString, const General *> generals;
+    GeneralList generalList;
+    QHash<QString, const General *> generalHash;
     QHash<QString, const QMetaObject *> metaobjects;
     QHash<QString, QString> className2objectName;
     QHash<QString, const Skill *> skills;
@@ -135,14 +222,17 @@ private:
     QMap<QString, QString> modes;
     QMultiMap<QString, QString> related_skills;
     mutable QMap<QString, const CardPattern *> patterns;
+    mutable QList<ExpPattern *> enginePatterns;
 
     // special skills
     QList<const ProhibitSkill *> prohibit_skills;
     QList<const DistanceSkill *> distance_skills;
     QList<const MaxCardsSkill *> maxcards_skills;
     QList<const TargetModSkill *> targetmod_skills;
+    QList<const AttackRangeSkill *> attackrange_skills;
     QList<const TriggerSkill *> global_trigger_skills;
 
+    QList<const Package *> packages;
     QList<Card *> cards;
     QStringList lord_list;
     QSet<QString> ban_package;
@@ -160,8 +250,12 @@ private:
     QHash<QString, const LuaWeapon*> luaWeapons;
     QHash<QString, QString> luaArmor_className2objectName;
     QHash<QString, const LuaArmor *> luaArmors;
+    QHash<QString, QString> luaTreasure_className2objectName;
+    QHash<QString, const LuaTreasure *> luaTreasures;
 
     QMultiMap<QString, QString> sp_convert_pairs;
+
+    TransferSkill *transfer;
 };
 
 static inline QVariant GetConfigFromLuaState(lua_State *L, const char *key) {

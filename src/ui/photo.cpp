@@ -1,3 +1,23 @@
+/********************************************************************
+    Copyright (c) 2013-2014 - QSanguosha-Rara
+
+    This file is part of QSanguosha-Hegemony.
+
+    This game is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License as
+    published by the Free Software Foundation; either version 3.0
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    See the LICENSE file for more details.
+
+    QSanguosha-Rara
+    *********************************************************************/
+
 #include "photo.h"
 #include "clientplayer.h"
 #include "settings.h"
@@ -5,9 +25,9 @@
 #include "engine.h"
 #include "standard.h"
 #include "client.h"
-#include "playercarddialog.h"
 #include "rolecombobox.h"
-#include "SkinBank.h"
+#include "skinbank.h"
+#include "graphicspixmaphoveritem.h"
 
 #include <QPainter>
 #include <QDrag>
@@ -35,7 +55,7 @@ using namespace QSanProtocol;
 // kingdom mask and kingdom icon (decouple from player)
 // make layers (drawing order) configurable
 
-Photo::Photo(): PlayerCardContainer() {
+Photo::Photo() : PlayerCardContainer() {
     _m_mainFrame = NULL;
     m_player = NULL;
     _m_focusFrame = NULL;
@@ -49,15 +69,14 @@ Photo::Photo(): PlayerCardContainer() {
 
     emotion_item = new Sprite(_m_groupMain);
 
-    _m_duanchangMask = new QGraphicsRectItem(_m_groupMain);
-    _m_duanchangMask->setRect(boundingRect());
-    _m_duanchangMask->setZValue(32767.0);
-    _m_duanchangMask->setOpacity(0.4);
-    _m_duanchangMask->hide();
-    QBrush duanchang_brush(G_PHOTO_LAYOUT.m_duanchangMaskColor);
-    _m_duanchangMask->setBrush(duanchang_brush);
-
     _createControls();
+}
+
+Photo::~Photo(){
+    if (emotion_item){
+        delete emotion_item;
+        emotion_item = NULL;
+    }
 }
 
 void Photo::refresh() {
@@ -71,16 +90,19 @@ void Photo::refresh() {
         QPainter painter(&image);
         painter.fillRect(QRect(0, 0, rect.width(), rect.height()), G_PHOTO_LAYOUT.m_onlineStatusBgColor);
         G_PHOTO_LAYOUT.m_onlineStatusFont.paintText(&painter, QRect(QPoint(0, 0), rect.size()),
-                                                    Qt::AlignCenter,
-                                                    Sanguosha->translate(state_str));
+            Qt::AlignCenter,
+            Sanguosha->translate(state_str));
         QPixmap pixmap = QPixmap::fromImage(image);
         _paintPixmap(_m_onlineStatusItem, rect, pixmap, _m_groupMain);
         _layBetween(_m_onlineStatusItem, _m_mainFrame, _m_chainIcon);
         if (!_m_onlineStatusItem->isVisible()) _m_onlineStatusItem->show();
-    } else if (_m_onlineStatusItem != NULL && state_str == "online")
+    }
+    else if (_m_onlineStatusItem != NULL && state_str == "online")
         _m_onlineStatusItem->hide();
 
 }
+
+
 
 QRectF Photo::boundingRect() const{
     return QRect(0, 0, G_PHOTO_LAYOUT.m_normalWidth, G_PHOTO_LAYOUT.m_normalHeight);
@@ -92,7 +114,7 @@ void Photo::repaintAll() {
     _paintPixmap(_m_mainFrame, G_PHOTO_LAYOUT.m_mainFrameArea, QSanRoomSkin::S_SKIN_KEY_MAINFRAME);
     setFrame(_m_frameType);
     hideSkillName(); // @todo: currently we don't adjust skillName's position for simplicity,
-                     // consider repainting it instead of hiding it in the future.
+    // consider repainting it instead of hiding it in the future.
     PlayerCardContainer::repaintAll();
     refresh();
 }
@@ -100,8 +122,8 @@ void Photo::repaintAll() {
 void Photo::_adjustComponentZValues() {
     PlayerCardContainer::_adjustComponentZValues();
     _layBetween(_m_mainFrame, _m_faceTurnedIcon, _m_equipRegions[3]);
-    _layBetween(emotion_item, _m_chainIcon, _m_roleComboBox);
-    _layBetween(_m_skillNameItem, _m_chainIcon, _m_roleComboBox);
+    _layBetween(emotion_item, _m_secondaryAvatarNameItem, _m_roleComboBox);
+    _layBetween(_m_skillNameItem, _m_secondaryAvatarNameItem, _m_roleComboBox);
     _m_progressBarItem->setZValue(_m_groupMain->zValue() + 1);
 }
 
@@ -116,7 +138,7 @@ void Photo::setEmotion(const QString &emotion, bool permanent) {
         QPixmap pixmap = QPixmap(path);
         emotion_item->setPixmap(pixmap);
         emotion_item->setPos((G_PHOTO_LAYOUT.m_normalWidth - pixmap.width()) / 2,
-                                (G_PHOTO_LAYOUT.m_normalHeight - pixmap.height()) / 2);
+            (G_PHOTO_LAYOUT.m_normalHeight - pixmap.height()) / 2);
         _layBetween(emotion_item, _m_chainIcon, _m_roleComboBox);
 
         QPropertyAnimation *appear = new QPropertyAnimation(emotion_item, "opacity");
@@ -124,14 +146,16 @@ void Photo::setEmotion(const QString &emotion, bool permanent) {
         if (permanent) {
             appear->setEndValue(1.0);
             appear->setDuration(500);
-        } else {
+        }
+        else {
             appear->setKeyValueAt(0.25, 1.0);
             appear->setKeyValueAt(0.75, 1.0);
             appear->setEndValue(0.0);
             appear->setDuration(2000);
         }
         appear->start(QAbstractAnimation::DeleteWhenStopped);
-    } else {
+    }
+    else {
         PixmapAnimation::GetPixmapAnimation(this, emotion);
     }
 }
@@ -150,9 +174,9 @@ void Photo::tremble() {
 
 void Photo::showSkillName(const QString &skill_name) {
     G_PHOTO_LAYOUT.m_skillNameFont.paintText(_m_skillNameItem,
-                                             G_PHOTO_LAYOUT.m_skillNameArea,
-                                             Qt::AlignLeft,
-                                             Sanguosha->translate(skill_name));
+        G_PHOTO_LAYOUT.m_skillNameArea,
+        Qt::AlignLeft,
+        Sanguosha->translate(skill_name));
     _m_skillNameItem->show();
     QTimer::singleShot(1000, this, SLOT(hideSkillName()));
 }
@@ -169,16 +193,52 @@ void Photo::hideEmotion() {
     disappear->start(QAbstractAnimation::DeleteWhenStopped);
 }
 
-void Photo::updateDuanchang() {
-    if (!m_player) return;
-    _m_duanchangMask->setVisible(m_player->getMark("@duanchang") > 0);
-}
-
 const ClientPlayer *Photo::getPlayer() const{
     return m_player;
 }
 
-void Photo::speak(const QString &content) {
+void Photo::speak(const QString &) {
+    //@@todo: complete it
+}
+
+void Photo::updateSmallAvatar() {
+    updateAvatar();
+    if (_m_smallAvatarIcon == NULL) {
+        _m_smallAvatarIcon = new GraphicsPixmapHoverItem(this, _getAvatarParent());
+        _m_smallAvatarIcon->setTransformationMode(Qt::SmoothTransformation);
+    }
+
+    const General *general = NULL;
+    if (m_player) general = m_player->getGeneral2();
+
+    if (general != NULL) {
+        QPixmap smallAvatarIcon = G_ROOM_SKIN.getGeneralPixmap(general->objectName(),
+                                                               QSanRoomSkin::GeneralIconSize(_m_layout->m_smallAvatarSize),
+                                                               m_player->getDeputySkinId());
+        smallAvatarIcon = paintByMask(smallAvatarIcon);
+        QGraphicsPixmapItem *smallAvatarTmp = _m_smallAvatarIcon;
+        _paintPixmap(smallAvatarTmp, _m_layout->m_secondaryAvatarArea,
+                     smallAvatarIcon, _getAvatarParent());
+        _paintPixmap(_m_circleItem, _m_layout->m_circleArea,
+            QString(QSanRoomSkin::S_SKIN_KEY_GENERAL_CIRCLE_IMAGE).arg(_m_layout->m_circleImageSize),
+            _getAvatarParent());
+        _m_secondaryAvatarArea->setToolTip(m_player->getDeputySkillDescription());
+        QString name = Sanguosha->translate("&" + general->objectName());
+        if (name.startsWith("&"))
+            name = Sanguosha->translate(general->objectName());
+        _m_layout->m_smallAvatarNameFont.paintText(_m_secondaryAvatarNameItem,
+            _m_layout->m_secondaryAvatarNameArea,
+            Qt::AlignLeft | Qt::AlignJustify, name);
+        _m_smallAvatarIcon->show();
+    } else {
+        _clearPixmap(_m_smallAvatarIcon);
+        _clearPixmap(_m_circleItem);
+        _m_layout->m_smallAvatarNameFont.paintText(_m_secondaryAvatarNameItem,
+            _m_layout->m_secondaryAvatarNameArea,
+            Qt::AlignLeft | Qt::AlignJustify, QString());
+        _m_secondaryAvatarArea->setToolTip(QString());
+    }
+    _adjustComponentZValues();
 }
 
 QList<CardItem *> Photo::removeCardItems(const QList<int> &card_ids, Player::Place place) {
@@ -186,9 +246,11 @@ QList<CardItem *> Photo::removeCardItems(const QList<int> &card_ids, Player::Pla
     if (place == Player::PlaceHand || place == Player::PlaceSpecial) {
         result = _createCards(card_ids);
         updateHandcardNum();
-    } else if (place == Player::PlaceEquip) {
+    }
+    else if (place == Player::PlaceEquip) {
         result = removeEquips(card_ids);
-    } else if (place == Player::PlaceDelayedTrick) {
+    }
+    else if (place == Player::PlaceDelayedTrick) {
         result = removeDelayedTricks(card_ids);
     }
 
@@ -208,15 +270,17 @@ bool Photo::_addCardItems(QList<CardItem *> &card_items, const CardsMoveStruct &
 
     Player::Place place = moveInfo.to_place;
 
-    foreach (CardItem *card_item, card_items)
+    foreach(CardItem *card_item, card_items)
         card_item->setHomeOpacity(homeOpacity);
     if (place == Player::PlaceEquip) {
         addEquips(card_items);
         destroy = false;
-    } else if (place == Player::PlaceDelayedTrick) {
+    }
+    else if (place == Player::PlaceDelayedTrick) {
         addDelayedTricks(card_items);
         destroy = false;
-    } else if (place == Player::PlaceHand) {
+    }
+    else if (place == Player::PlaceHand) {
         updateHandcardNum();
     }
     return destroy;
@@ -233,10 +297,11 @@ void Photo::setFrame(FrameType type) {
             else
                 _m_focusFrame->hide();
         }
-    } else {
+    }
+    else {
         _paintPixmap(_m_focusFrame, G_PHOTO_LAYOUT.m_focusFrameArea,
-                     _getPixmap(QSanRoomSkin::S_SKIN_KEY_FOCUS_FRAME, QString::number(type)),
-                     _m_groupMain);
+            _getPixmap(QSanRoomSkin::S_SKIN_KEY_FOCUS_FRAME, QString::number(type)),
+            _m_groupMain);
         _layBetween(_m_focusFrame, _m_avatarArea, _m_mainFrame);
         _m_focusFrame->show();
     }
@@ -251,8 +316,30 @@ void Photo::updatePhase() {
         setFrame(S_FRAME_NO_FRAME);
 }
 
-void Photo::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) {
+void Photo::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *) {
     painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
+}
+
+QPropertyAnimation *Photo::initializeBlurEffect(GraphicsPixmapHoverItem *icon)
+{
+    QGraphicsBlurEffect *effect = new QGraphicsBlurEffect;
+    effect->setBlurHints(QGraphicsBlurEffect::AnimationHint);
+    effect->setBlurRadius(0);
+    icon->setGraphicsEffect(effect);
+
+    QPropertyAnimation *animation = new QPropertyAnimation(effect, "blurRadius");
+    animation->setEasingCurve(QEasingCurve::OutInBounce);
+    animation->setDuration(2000);
+    animation->setStartValue(0);
+    animation->setEndValue(5);
+    return animation;
+}
+
+void Photo::_initializeRemovedEffect()
+{
+    _blurEffect = new QParallelAnimationGroup(this);
+    _blurEffect->addAnimation(initializeBlurEffect(_m_avatarIcon));
+    _blurEffect->addAnimation(initializeBlurEffect(_m_smallAvatarIcon));
 }
 
 QGraphicsItem *Photo::getMouseClickReceiver() {

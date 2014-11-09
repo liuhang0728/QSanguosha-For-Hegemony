@@ -1,11 +1,27 @@
+/********************************************************************
+    Copyright (c) 2013-2014 - QSanguosha-Rara
+
+    This file is part of QSanguosha-Hegemony.
+
+    This game is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License as
+    published by the Free Software Foundation; either version 3.0
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    See the LICENSE file for more details.
+
+    QSanguosha-Rara
+    *********************************************************************/
+
 #include "standard.h"
-#include "serverplayer.h"
 #include "room.h"
 #include "skill.h"
-#include "clientplayer.h"
 #include "engine.h"
-#include "client.h"
-#include "exppattern.h"
 
 QString BasicCard::getType() const{
     return "basic";
@@ -76,20 +92,28 @@ void EquipCard::use(Room *room, ServerPlayer *source, QList<ServerPlayer *> &tar
 
     QList<CardsMoveStruct> exchangeMove;
     CardsMoveStruct move1(getEffectiveId(), target, Player::PlaceEquip,
-                          CardMoveReason(CardMoveReason::S_REASON_USE, target->objectName()));
+        CardMoveReason(CardMoveReason::S_REASON_USE, target->objectName()));
     exchangeMove.push_back(move1);
     if (equipped_id != Card::S_UNKNOWN_CARD_ID) {
-         CardsMoveStruct move2(equipped_id, NULL, Player::DiscardPile,
-                               CardMoveReason(CardMoveReason::S_REASON_CHANGE_EQUIP, target->objectName()));
-         exchangeMove.push_back(move2);
+        CardsMoveStruct move2(equipped_id, target, Player::PlaceTable,
+            CardMoveReason(CardMoveReason::S_REASON_CHANGE_EQUIP, target->objectName()));
+        exchangeMove.push_back(move2);
     }
+    room->moveCardsAtomic(exchangeMove, true);
+
     LogMessage log;
     log.from = target;
     log.type = "$Install";
     log.card_str = QString::number(getEffectiveId());
     room->sendLog(log);
 
-    room->moveCardsAtomic(exchangeMove, true);
+    if (equipped_id != Card::S_UNKNOWN_CARD_ID) {
+        if (room->getCardPlace(equipped_id) == Player::PlaceTable) {
+            CardsMoveStruct move3(equipped_id, NULL, Player::DiscardPile,
+                CardMoveReason(CardMoveReason::S_REASON_CHANGE_EQUIP, target->objectName()));
+            room->moveCardsAtomic(move3, true);
+        }
+    }
 }
 
 void EquipCard::onInstall(ServerPlayer *player) const{
@@ -102,14 +126,24 @@ void EquipCard::onInstall(ServerPlayer *player) const{
         } else if (skill->inherits("TriggerSkill")) {
             const TriggerSkill *trigger_skill = qobject_cast<const TriggerSkill *>(skill);
             room->getThread()->addTriggerSkill(trigger_skill);
+            if (trigger_skill->getViewAsSkill())
+                room->attachSkillToPlayer(player, this->objectName());
         }
     }
 }
 
 void EquipCard::onUninstall(ServerPlayer *player) const{
     Room *room = player->getRoom();
-    if (Sanguosha->getSkill(this) && Sanguosha->getSkill(this)->inherits("ViewAsSkill"))
-        room->detachSkillFromPlayer(player, this->objectName(), true);
+    const Skill *skill = Sanguosha->getSkill(this);
+    if (skill) {
+        if (skill->inherits("ViewAsSkill")) {
+            room->detachSkillFromPlayer(player, this->objectName(), true);
+        } else if (skill->inherits("TriggerSkill")) {
+            const TriggerSkill *trigger_skill = qobject_cast<const TriggerSkill *>(skill);
+            if (trigger_skill->getViewAsSkill())
+                room->detachSkillFromPlayer(player, this->objectName(), true);
+        }
+    }
 }
 
 QString GlobalEffect::getSubtype() const{
@@ -118,20 +152,30 @@ QString GlobalEffect::getSubtype() const{
 
 void GlobalEffect::onUse(Room *room, const CardUseStruct &card_use) const{
     ServerPlayer *source = card_use.from;
-    QList<ServerPlayer *> targets, all_players = room->getAllPlayers();
-    foreach (ServerPlayer *player, all_players) {
-        const ProhibitSkill *skill = room->isProhibited(source, player, this);
-        if (skill) {
-            LogMessage log;
-            log.type = "#SkillAvoid";
-            log.from = player;
-            log.arg = skill->objectName();
-            log.arg2 = objectName();
-            room->sendLog(log);
+    QList<ServerPlayer *> targets;
+    if (card_use.to.isEmpty()) {
+        QList<ServerPlayer *> all_players = room->getAllPlayers();
+        foreach (ServerPlayer *player, all_players) {
+            const Skill *skill = room->isProhibited(source, player, this);
+            if (skill) {
+                if (!skill->isVisible())
+                    skill = Sanguosha->getMainSkill(skill->objectName());
+                if (skill->isVisible()) {
+                    LogMessage log;
+                    log.type = "#SkillAvoid";
+                    log.from = player;
+                    log.arg = skill->objectName();
+                    log.arg2 = objectName();
+                    room->sendLog(log);
 
-            room->broadcastSkillInvoke(skill->objectName());
-        } else
-            targets << player;
+                    room->broadcastSkillInvoke(skill->objectName(), player);
+                }
+            } else {
+                targets << player;
+            }
+        }
+    } else {
+        targets = card_use.to;
     }
 
     CardUseStruct use = card_use;
@@ -143,7 +187,7 @@ bool GlobalEffect::isAvailable(const Player *player) const{
     bool canUse = false;
     QList<const Player *> players = player->getAliveSiblings();
     players << player;
-    foreach (const Player *p, players) {
+    foreach(const Player *p, players) {
         if (player->isProhibited(p, this))
             continue;
 
@@ -161,7 +205,7 @@ QString AOE::getSubtype() const{
 bool AOE::isAvailable(const Player *player) const{
     bool canUse = false;
     QList<const Player *> players = player->getAliveSiblings();
-    foreach (const Player *p, players) {
+    foreach(const Player *p, players) {
         if (player->isProhibited(p, this))
             continue;
 
@@ -174,20 +218,30 @@ bool AOE::isAvailable(const Player *player) const{
 
 void AOE::onUse(Room *room, const CardUseStruct &card_use) const{
     ServerPlayer *source = card_use.from;
-    QList<ServerPlayer *> targets, other_players = room->getOtherPlayers(source);
-    foreach (ServerPlayer *player, other_players) {
-        const ProhibitSkill *skill = room->isProhibited(source, player, this);
-        if (skill) {
-            LogMessage log;
-            log.type = "#SkillAvoid";
-            log.from = player;
-            log.arg = skill->objectName();
-            log.arg2 = objectName();
-            room->sendLog(log);
+    QList<ServerPlayer *> targets;
+    if (card_use.to.isEmpty()) {
+        QList<ServerPlayer *> other_players = room->getOtherPlayers(source);
+        foreach (ServerPlayer *player, other_players) {
+            const Skill *skill = room->isProhibited(source, player, this);
+            if (skill) {
+                if (!skill->isVisible())
+                    skill = Sanguosha->getMainSkill(skill->objectName());
+                if (skill->isVisible()) {
+                    LogMessage log;
+                    log.type = "#SkillAvoid";
+                    log.from = player;
+                    log.arg = skill->objectName();
+                    log.arg2 = objectName();
+                    room->sendLog(log);
 
-            room->broadcastSkillInvoke(skill->objectName());
-        } else
-            targets << player;
+                    room->broadcastSkillInvoke(skill->objectName(), player);
+                }
+            } else {
+                targets << player;
+            }
+        }
+    } else {
+        targets = card_use.to;
     }
 
     CardUseStruct use = card_use;
@@ -199,7 +253,7 @@ QString SingleTargetTrick::getSubtype() const{
     return "single_target_trick";
 }
 
-bool SingleTargetTrick::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const{
+bool SingleTargetTrick::targetFilter(const QList<const Player *> &, const Player *, const Player *) const{
     return true;
 }
 
@@ -225,21 +279,27 @@ void DelayedTrick::onUse(Room *room, const CardUseStruct &card_use) const{
     RoomThread *thread = room->getThread();
     thread->trigger(PreCardUsed, room, use.from, data);
 
-    CardMoveReason reason(CardMoveReason::S_REASON_USE, use.from->objectName(), use.to.first()->objectName(), this->getSkillName(), QString());
+    CardMoveReason reason(CardMoveReason::S_REASON_USE, use.from->objectName(), use.to.first()->objectName(), getSkillName(), QString());
     room->moveCardTo(this, use.from, use.to.first(), Player::PlaceDelayedTrick, reason, true);
+
+    QString skill_name = wrapped->showSkill();
+    if (!skill_name.isNull() && use.from->ownSkill(skill_name) && !use.from->hasShownSkill(skill_name))
+        use.from->showGeneral(use.from->inHeadSkills(skill_name));
 
     thread->trigger(CardUsed, room, use.from, data);
     thread->trigger(CardFinished, room, use.from, data);
 }
 
 void DelayedTrick::use(Room *room, ServerPlayer *source, QList<ServerPlayer *> &targets) const{
-    if (targets.isEmpty()) {
+    QStringList nullified_list = room->getTag("CardUseNullifiedList").toStringList();
+    bool all_nullified = nullified_list.contains("_ALL_TARGETS");
+    if (all_nullified || targets.isEmpty()) {
         if (movable) {
             onNullified(source);
             if (room->getCardOwner(getEffectiveId()) != source) return;
         }
         CardMoveReason reason(CardMoveReason::S_REASON_USE, source->objectName(), QString(), this->getSkillName(), QString());
-        room->moveCardTo(this, source, NULL, Player::DiscardPile, reason, true);
+        room->moveCardTo(this, NULL, Player::DiscardPile, reason, true);
     }
 }
 
@@ -269,9 +329,11 @@ void DelayedTrick::onEffect(const CardEffectStruct &effect) const{
             CardMoveReason reason(CardMoveReason::S_REASON_NATURAL_ENTER, QString());
             room->throwCard(this, reason, NULL);
         }
-    } else if (movable) {
+    }
+    else if (movable) {
         onNullified(effect.to);
-    } else {
+    }
+    else {
         if (room->getCardOwner(getEffectiveId()) == NULL) {
             CardMoveReason reason(CardMoveReason::S_REASON_NATURAL_ENTER, QString());
             room->throwCard(this, reason, NULL);
@@ -283,11 +345,23 @@ void DelayedTrick::onNullified(ServerPlayer *target) const{
     Room *room = target->getRoom();
     RoomThread *thread = room->getThread();
     if (movable) {
-        QList<ServerPlayer *> players = room->getOtherPlayers(target);
-        players << target;
+        QList<ServerPlayer *> players;
+        QList<ServerPlayer *> count_players = room->getPlayers();
+        ServerPlayer *starter = target;
+        int index = count_players.indexOf(starter);
+        for (int i = index + 1; i < count_players.length(); i++) {
+            if (count_players[i]->isAlive())
+                players << count_players[i];
+        }
+
+        for (int i = 0; i <= index; i++) {
+            if (count_players[i]->isAlive())
+                players << count_players[i];
+        }
+
         ServerPlayer *p = NULL;
 
-        foreach (ServerPlayer *player, players) {
+        foreach(ServerPlayer *player, players) {
             if (player->containsTrick(objectName()))
                 continue;
 
@@ -300,7 +374,7 @@ void DelayedTrick::onNullified(ServerPlayer *target) const{
                 log.arg2 = objectName();
                 room->sendLog(log);
 
-                room->broadcastSkillInvoke(skill->objectName());
+                room->broadcastSkillInvoke(skill->objectName(), player);
                 continue;
             }
 
@@ -309,10 +383,7 @@ void DelayedTrick::onNullified(ServerPlayer *target) const{
 
             if (target == player) break;
 
-            CardUseStruct use;
-            use.from = NULL;
-            use.to << player;
-            use.card = this;
+            CardUseStruct use(this, NULL, player);
             QVariant data = QVariant::fromValue(use);
             thread->trigger(TargetConfirming, room, player, data);
             CardUseStruct new_use = data.value<CardUseStruct>();
@@ -321,13 +392,16 @@ void DelayedTrick::onNullified(ServerPlayer *target) const{
                 break;
             }
 
-            foreach (ServerPlayer *p, room->getAllPlayers())
+            foreach(ServerPlayer *p, room->getAllPlayers())
+                thread->trigger(TargetChosen, room, p, data);
+            foreach(ServerPlayer *p, room->getAllPlayers())
                 thread->trigger(TargetConfirmed, room, p, data);
             break;
         }
         if (p)
             onNullified(p);
-    } else {
+    }
+    else {
         CardMoveReason reason(CardMoveReason::S_REASON_NATURAL_ENTER, target->objectName());
         room->throwCard(this, reason, NULL);
     }
@@ -336,14 +410,6 @@ void DelayedTrick::onNullified(ServerPlayer *target) const{
 Weapon::Weapon(Suit suit, int number, int range)
     : EquipCard(suit, number), range(range)
 {
-    can_recast = true;
-}
-
-bool Weapon::isAvailable(const Player *player) const{
-    QString mode = player->getGameMode();
-    if (mode == "04_1v3" && !player->isCardLimited(this, Card::MethodRecast))
-        return true;
-    return !player->isCardLimited(this, Card::MethodUse) && EquipCard::isAvailable(player);
 }
 
 int Weapon::getRange() const{
@@ -352,30 +418,6 @@ int Weapon::getRange() const{
 
 QString Weapon::getSubtype() const{
     return "weapon";
-}
-
-void Weapon::onUse(Room *room, const CardUseStruct &card_use) const{
-    CardUseStruct use = card_use;
-    ServerPlayer *player = card_use.from;
-    if (room->getMode() == "04_1v3"
-        && use.card->isKindOf("Weapon")
-        && (player->isCardLimited(use.card, Card::MethodUse)
-            || player->askForSkillInvoke("weapon_recast", QVariant::fromValue(use)))) {
-        CardMoveReason reason(CardMoveReason::S_REASON_RECAST, player->objectName());
-        reason.m_eventName = "weapon_recast";
-        room->moveCardTo(use.card, player, NULL, Player::DiscardPile, reason);
-        player->broadcastSkillInvoke("@recast");
-
-        LogMessage log;
-        log.type = "#Card_Recast";
-        log.from = player;
-        log.card_str = use.card->toString();
-        room->sendLog(log);
-
-        player->drawCards(1);
-        return;
-    }
-    EquipCard::onUse(room, use);
 }
 
 EquipCard::Location Weapon::location() const{
@@ -406,20 +448,21 @@ Horse::Horse(Suit suit, int number, int correct)
 int Horse::getCorrect() const{
     return correct;
 }
-
+/*
 void Horse::onInstall(ServerPlayer *) const{
 }
 
 void Horse::onUninstall(ServerPlayer *) const{
 }
-
+*/
 QString Horse::getCommonEffectName() const{
     return "horse";
 }
 
-OffensiveHorse::OffensiveHorse(Card::Suit suit, int number, int correct)
+OffensiveHorse::OffensiveHorse(Card::Suit suit, int number, int correct, bool is_transferable)
     : Horse(suit, number, correct)
 {
+    transferable = is_transferable;
 }
 
 QString OffensiveHorse::getSubtype() const{
@@ -442,40 +485,14 @@ EquipCard::Location Horse::location() const{
         return OffensiveHorseLocation;
 }
 
-StandardPackage::StandardPackage()
-    : Package("standard")
-{
-    addWeiGenerals();
-    addShuGenerals();
-    addWuGenerals();
-    addQunGenerals();
-
-    patterns["."] = new ExpPattern(".|.|.|hand");
-    patterns[".S"] = new ExpPattern(".|spade|.|hand");
-    patterns[".C"] = new ExpPattern(".|club|.|hand");
-    patterns[".H"] = new ExpPattern(".|heart|.|hand");
-    patterns[".D"] = new ExpPattern(".|diamond|.|hand");
-
-    patterns[".black"] = new ExpPattern(".|black|.|hand");
-    patterns[".red"] = new ExpPattern(".|red|.|hand");
-
-    patterns[".."] = new ExpPattern(".");
-    patterns["..S"] = new ExpPattern(".|spade");
-    patterns["..C"] = new ExpPattern(".|club");
-    patterns["..H"] = new ExpPattern(".|heart");
-    patterns["..D"] = new ExpPattern(".|diamond");
-
-    patterns[".Basic"] = new ExpPattern("BasicCard");
-    patterns[".Trick"] = new ExpPattern("TrickCard");
-    patterns[".Equip"] = new ExpPattern("EquipCard");
-
-    patterns[".Weapon"] = new ExpPattern("Weapon");
-    patterns["slash"] = new ExpPattern("Slash");
-    patterns["jink"] = new ExpPattern("Jink");
-    patterns["peach"] = new  ExpPattern("Peach");
-    patterns["nullification"] = new ExpPattern("Nullification");
-    patterns["peach+analeptic"] = new ExpPattern("Peach,Analeptic");
+QString Treasure::getSubtype() const{
+    return "treasure";
 }
 
-ADD_PACKAGE(Standard)
+EquipCard::Location Treasure::location() const{
+    return TreasureLocation;
+}
 
+QString Treasure::getCommonEffectName() const{
+    return "treasure";
+}

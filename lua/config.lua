@@ -1,8 +1,28 @@
+--[[********************************************************************
+	Copyright (c) 2013-2014 - QSanguosha-Rara
+
+  This file is part of QSanguosha-Hegemony.
+
+  This game is free software; you can redistribute it and/or
+  modify it under the terms of the GNU General Public License as
+  published by the Free Software Foundation; either version 3.0
+  of the License, or (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  General Public License for more details.
+
+  See the LICENSE file for more details.
+
+  QSanguosha-Rara
+*********************************************************************]]
+
 -- this script to store the basic configuration for game program itself
 -- and it is a little different from config.ini
 
 config = {
-	kingdoms = { "wei", "shu", "wu", "qun", "god" },
+	kingdoms = { "wei", "qun", "shu", "wu", "god" },
 	kingdom_colors = {
 		wei = "#547998",
 		shu = "#D0796C",
@@ -10,26 +30,34 @@ config = {
 		qun = "#8A807A",
 		god = "#96943D",
 	},
-	
+
+	skill_colors = {
+		compulsory = "#0000FF",
+		once_per_turn = "#008000",
+		limited = "#FF0000",
+		head = "#00FF00",
+		deputy = "#00FFFF",
+		array = "#800080",
+		lord = "#FFA500",
+	},
+
+	-- Sci-fi style background
+	--dialog_background_color = "#49C9F0";
+	--dialog_background_alpha = 75;
+	dialog_background_color = "#D6E7DB";
+	dialog_background_alpha = 255;
+
 	package_names = {
 		"StandardCard",
+		"FormationEquip",
+		"MomentumEquip" ,
+		"StrategicAdvantage",
 
 		"Standard",
 		"Formation",
-		"Test"
-	},
-
-	hulao_packages = {
-		"standard",
-		"wind"
-	},
-
-	xmode_packages = {
-		"standard",
-		"wind",
-		"fire",
-		"nostal_standard",
-		"nostal_wind",
+		"Momentum",
+		"Test",
+		"JiangeDefense"
 	},
 
 	easy_text = {
@@ -44,155 +72,62 @@ config = {
 		"杀！神挡杀神！佛挡杀佛！",
 		"你也忒坏了吧？！"
 	},
-	
+
 	robot_names = {
-		"啦啦SLG",
-		"Fsu0413",
-		"小猪翼爱啦啦",
+		"啦啦失恋过", --啦啦SLG
+		"Fsu0213", --Fsu0413
+		"凌电信", --凌天翼
 		"元嘉体",
-		"豚紙愛啦啦",
-		"女王受·虫",
-		"doublebit",
-		"爱上穹妹的某",
-		"开不了车",
-		"独孤安河",
-		"百年东风",
-		"Paracel_007",
-		"haveatry823" ,
-		"lrl026",
-		"墨宣砚韵",
-		"忧郁の月兔君",
-		"来一口-水饺",
-		"甄钰月儿",
-		"卍冰の羽卍",
-		"五毛羽君",
-		"McDon",
-		"陈家祺" ,
-		"你妹大神"
+		"萌豚紙",  --豚紙
+		"女王神·Slob", --女王受·虫
+		"Double_Bit！", --Double_Bit？
+		"爱上穹妹的Jia", --爱上穹妹的某
+		"没驾照开不了车", --开不了车
+		"写书的独孤安河", --独孤安河
+		"百年东南西北风", --百年东风
+		"Paracel_00发", --Paracel_007
+		"haveago823" , --haveatry823
+		"离人泪026", --lrl026
+		"墨宣砚韵", --a late developer
+		"忧郁のlzxqqqq", --忧郁的月兔（lzxqqqq）
+		"卍brianのvong卍", --卍冰の羽卍
+		"五毛羽", --arrow羽
+		"大同人陈家祺" , --陈家祺大同中心
+		"fsu0415" , --你妹大神
+		"麦当劳" , --果然萝卜斩
+		"高调的富妮妮" , --低调的付尼玛
+		"☆№Ｌ36×李Ｊ№★" , --☆№Ｌ糾×結Ｊ№★
+		"ACG杀手", --hmqgg
+		"Nagisa乐意", --Nagisa_Willing
+		"0o叮咚咚叮o0", --0o叮咚Backup
+		"医治曙光", --医治永恒（曙光）
+		"甄姬真姬", --甄姬真妓（日月小辰）
+		"tangjs我爱你", --tangjs520
+		"帷幕之下问心云",
+		"普肉", --Procellarum
+		"大内总管KK", --KenKic
+		"叶落孤舟",
+		"晓月的微信", --晓月的泪痕
+		"Xasy-Po-Love", --Easy-To-Love（XPL）
+		"小修司V", --小休斯
+		"清风不屈一对10", --清风弄错流年
+		"非凡借刀教做人", --非凡神力
+		"高城和二", --takashiro
+		"tan∠ANY", --任意角的正切
+		"刘恒飞翔", --恒星飞翔
+		"寂镜Jnrio",
+		"人啊环境", --rahj
+		"良家大少", --祝家大少
+		"禽受张", --老张
+		"孝弯", --孝直
+		"鱼纸酱", --鱼
+		"凌乱_解锁", --铃兰_杰索
+		"凹凸", --ought~
+		"DJ ainomelody",
+		"shenglove82" ,
+		"1131561728" ,
+		"阿米拉嗪" ,
+		"teyteym" ,
+		"半圆"
 	},
-
-	roles_ban = {
-		"vs_xiahoudun",
-		"vs_guanyu",
-		"vs_zhaoyun",
-		"vs_lvbu",
-		"kof_zhangliao",
-		"kof_xuchu",
-		"kof_zhenji",
-		"kof_xiahouyuan",
-		"kof_guanyu",
-		"kof_machao",
-		"kof_nos_huangyueying",
-		"kof_huangzhong",
-		"kof_jiangwei",
-		"kof_menghuo",
-		"kof_zhurong",
-		"kof_sunshangxiang",
-		"kof_nos_diaochan",
-	},
-
-	kof_ban = {
-		"sunquan",
-		"huatuo"
-	},
-
-	hulao_ban = {
-		"yuji"
-	},
-
-	xmode_ban = {
-		"huatuo",
-		"zhangjiao",
-		"caoren",
-		"zhoutai",
-		"yuji",
-		"liubei",
-		"diaochan",
-		"huangyueying",
-		"st_yuanshu",
-		"st_huaxiong",
-		"nos_zhangjiao",
-		"nos_yuji",
-	},
-
-	basara_ban = {
-	},
-	
-	hegemony_ban = {
-	},
-
-	pairs_ban = {
-		--[["huatuo", "zhoutai", "zuoci", "bgm_pangtong", "shencaocao", "liaohua", "nos_zhoutai",
-		"+luboyan",
-		"simayi+zhenji", "simayi+dengai",
-		"caoren+shenlvbu", "caoren+caozhi", "caoren+bgm_diaochan", "caoren+bgm_caoren", "caoren+neo_caoren", "caoren+nos_caoren",
-		"nos_caoren+shenlvbu", "nos_caoren+caozhi", "nos_caoren+bgm_diaochan", "nos_caoren+bgm_caoren", "nos_caoren+neo_caoren",
-		"guojia+dengai",
-		"zhenji+zhangjiao", "zhenji+shensimayi", "zhenji+zhugejin", "zhenji+nos_zhangjiao", "zhenji+nos_wangyi",
-		"zhanghe+yuanshu",
-		"dianwei+weiyan",
-		"dengai+zhangjiao", "dengai+shensimayi", "dengai+zhugejin", "dengai+nos_zhangjiao",
-		"zhangfei+huanggai", "zhangfei+zhangchunhua", "zhangfei+nos_zhangchunhua",
-		"zhugeliang+xushu", "zhugeliang+nos_xushu",
-		"huangyueying+wolong", "huangyueying+ganning", "huangyueying+huanggai", "huangyueying+yuanshao", "huangyueying+yanliangwenchou",
-		"huangzhong+xusheng",
-		"wolong+luxun", "wolong+zhangchunhua", "wolong+nos_huangyueying", "wolong+nos_zhangchunhua",
-		"sunquan+sunshangxiang",
-		"ganning+nos_huangyueying",
-		"lvmeng+yuanshu",
-		"huanggai+sunshangxiang", "huanggai+yuanshao", "huanggai+yanliangwenchou", "huanggai+dongzhuo",
-		    "huanggai+wuguotai", "huanggai+guanxingzhangbao", "huanggai+huaxiong", "huanggai+xiahouba",
-		    "huanggai+nos_huangyueying", "huanggai+nos_guanxingzhangbao", "huanggai+neo_zhangfei",
-		"luxun+yanliangwenchou", "luxun+guanxingzhangbao", "luxun+guanping", "luxun+heg_luxun",
-		    "luxun+nos_liubei", "luxun+nos_yuji", "luxun+nos_guanxingzhangbao",
-		"sunshangxiang+shensimayi", "sunshangxiang+heg_luxun",
-		"sunce+guanxingzhangbao", "sunce+nos_guanxingzhangbao",
-		"yuanshao+nos_huangyueying",
-		"yanliangwenchou+zhangchunhua", "yanliangwenchou+nos_huangyueying", "yanliangwenchou+nos_zhangchunhua",
-		"dongzhuo+shenzhaoyun", "dongzhuo+wangyi", "dongzhuo+diy_wangyuanji", "dongzhuo+nos_zhangchunhua", "dongzhuo+nos_wangyi",
-		"shencaocao+caozhi",
-		"shenlvbu+caozhi", "shenlvbu+liaohua", "shenlvbu+bgm_diaochan", "shenlvbu+bgm_caoren", "shenlvbu+neo_caoren",
-		"shenzhaoyun+huaxiong",
-		"caozhi+bgm_diaochan", "caozhi+bgm_caoren", "caozhi+neo_caoren",
-		"gaoshun+zhangchunhua", "gaoshun+nos_zhangchunhua",
-		"wuguotai+caochong",
-		"zhangchunhua+guanxingzhangbao", "zhangchunhua+guanping", "zhangchunhua+xiahouba", "zhangchunhua+zhugeke",
-		    "zhangchunhua+heg_luxun", "zhangchunhua+nos_liubei", "zhangchunhua+nos_yuji", "zhangchunhua+nos_guanxingzhangbao", "zhangchunhua+neo_zhangfei",
-		"guanxingzhangbao+bgm_zhangfei", "guanxingzhangbao+nos_zhangchunhua",
-		"liaohua+bgm_diaochan",
-		"guanping+nos_zhangchunhua",
-		"xiahouba+nos_zhangchunhua",
-		"zhugeke+nos_zhangchunhua",
-		"bgm_diaochan+bgm_caoren",
-		"bgm_caoren+neo_caoren",
-		"bgm_zhangfei+nos_guanxingzhangbao",
-		"nos_liubei+nos_zhangchunhua",
-		"nos_yuji+nos_zhangchunhua",
-		"nos_zhangchunhua+heg_luxun", "nos_zhangchunhua+nos_guanxingzhangbao", "nos_zhangchunhua+neo_zhangfei",
-		"caoren+dengshizai", "nos_caoren+dengshizai", "shenlvbu+dengshizai", "bgm_diaochan+dengshizai", "bgm_caoren+dengshizai", "neo_caoren+dengshizai",
-		"jiangboyue+huangyueying", "jiangboyue+wolong", "jiangboyue+yuanshao",
-		"jiangboyue+yanliangwenchou", "jiangboyue+ganning", "jiangboyue+luxun", "jiangboyue+zhanggongqi",
-		"yt_caochong+caocao", "yuanshu+caocao",
-		"lukang+nos_liubei", "lukang+wolong", "lukang+yuji", "jiangboyue+lukang", "lukang+yanliangwenchou", "lukang+guanxingzhangbao", "lukang+heg_luxun",
-		"caoren+caizhaoji", "nos_caoren+caizhaoji", "bgm_caoren+caizhaoji", "neo_caoren+caizhaoji", "dengshizai+caizhaoji",
-		"zhugejin+caizhaoji", "simayi+caizhaoji", "shensimayi+caizhaoji", "caozhi+caizhaoji", "shenlvbu+caizhaoji", "bgm_diaochan+caizhaoji",
-		"wis_jiangwei+zhanggongqi", "luxun+zhanggongqi"]]
-	},
-	
-	couple_lord = "caocao",
-	couple_couples = {
-		"caopi|caozhi+zhenji",
-		"simayi+zhangchunhua",
-		"liubei+ganfuren|sp_sunshangxiang",
-		"zhangfei|bgm_zhangfei+xiahoushi|xiahoujuan",
-		"zhugeliang|wolong+huangyueying",
-		"menghuo+zhurong",
-		"zhouyu+xiaoqiao",
-		"lvbu|dongzhuo+diaochan",
-		"sunjian+wuguotai",
-		"sunce+daqiao",
-		"sunquan+bulianshi",
-		"diy_simazhao+diy_wangyuanji",
-		"liuxie|diy_liuxie+fuhuanghou|as_fuhuanghou"
-	}
 }
